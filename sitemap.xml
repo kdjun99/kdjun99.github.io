@@ -1,26 +1,25 @@
-This XML file does not appear to have any style information associated with it. The document tree is shown below.
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 <url>
-<loc>http://localhost:4000/categories/</loc>
+<loc>https://kim-dong-jun99.github.io/categories/</loc>
 <lastmod>2024-06-21T17:09:19+09:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/tags/</loc>
+<loc>https://kim-dong-jun99.github.io/tags/</loc>
 <lastmod>2024-06-21T17:09:19+09:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/archives/</loc>
+<loc>https://kim-dong-jun99.github.io/archives/</loc>
 <lastmod>2024-06-21T17:09:19+09:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/about/</loc>
+<loc>https://kim-dong-jun99.github.io//about/</loc>
 <lastmod>2024-06-21T17:09:19+09:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/</loc>
+<loc>https://kim-dong-jun99.github.io/</loc>
 </url>
 <url>
-<loc>http://localhost:4000/google7c116fd6efcddd66.html</loc>
+<loc>https://kim-dong-jun99.github.io/google7c116fd6efcddd66.html</loc>
 <lastmod>2024-06-21T17:04:33+09:00</lastmod>
 </url>
 </urlset>
