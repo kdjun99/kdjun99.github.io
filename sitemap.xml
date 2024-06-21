@@ -1,25 +1,37 @@
-<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
+
+
 <url>
-<loc>https://kim-dong-jun99.github.io/categories/</loc>
-<lastmod>2024-06-21T17:09:19+09:00</lastmod>
+  <loc>https://kim-dong-jun99.github.io/</loc>
+  <lastmod>2024-06-21T08:18:27+00:00</lastmod>
+  <priority>1.00</priority>
 </url>
 <url>
-<loc>https://kim-dong-jun99.github.io/tags/</loc>
-<lastmod>2024-06-21T17:09:19+09:00</lastmod>
+  <loc>https://kim-dong-jun99.github.io/categories/</loc>
+  <lastmod>2024-06-21T08:18:27+00:00</lastmod>
+  <priority>0.80</priority>
 </url>
 <url>
-<loc>https://kim-dong-jun99.github.io/archives/</loc>
-<lastmod>2024-06-21T17:09:19+09:00</lastmod>
+  <loc>https://kim-dong-jun99.github.io/tags/</loc>
+  <lastmod>2024-06-21T08:18:27+00:00</lastmod>
+  <priority>0.80</priority>
 </url>
 <url>
-<loc>https://kim-dong-jun99.github.io//about/</loc>
-<lastmod>2024-06-21T17:09:19+09:00</lastmod>
+  <loc>https://kim-dong-jun99.github.io/archives/</loc>
+  <lastmod>2024-06-21T08:18:27+00:00</lastmod>
+  <priority>0.80</priority>
 </url>
 <url>
-<loc>https://kim-dong-jun99.github.io/</loc>
+  <loc>https://kim-dong-jun99.github.io/about/</loc>
+  <lastmod>2024-06-21T08:18:27+00:00</lastmod>
+  <priority>0.80</priority>
 </url>
-<url>
-<loc>https://kim-dong-jun99.github.io/google7c116fd6efcddd66.html</loc>
-<lastmod>2024-06-21T17:04:33+09:00</lastmod>
-</url>
+
+
 </urlset>
