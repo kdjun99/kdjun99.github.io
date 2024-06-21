@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kim-dong-jun99.github.io/sitemap.xml
