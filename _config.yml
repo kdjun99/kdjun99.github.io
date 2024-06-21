@@ -107,18 +107,18 @@ toc: true
 
 comments:
   # Global switch for the post comment system. Keeping it empty means disabled.
-  provider: # [disqus | utterances | giscus]
+  provider: giscus # [disqus | utterances | giscus]
   # The provider options are as follows:
   disqus:
-    shortname: # fill with the Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
+    shortname: kim-dong-jun99-github-io  # fill with the Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
   # utterances settings › https://utteranc.es/
   utterances:
     repo: # <gh-username>/<repo>
     issue_term: # < url | pathname | title | ...>
   # Giscus options › https://giscus.app
   giscus:
-    repo: # <gh-username>/<repo>
-    repo_id:
+    repo: Kim-Dong-Jun99/kim-dong-jun99.github.io  # <gh-username>/<repo>
+    repo_id: R_kgDOMMPwyQ
     category:
     category_id:
     mapping: # optional, default to 'pathname'
@@ -234,6 +234,7 @@ jekyll_compose:
       image:
       category:
       tags:
+      author: kim-dong-jun99
     posts:
       description:
       image:
@@ -241,3 +242,4 @@ jekyll_compose:
       tags:
       published: false
       sitemap: false
+      author: kim-dong-jun99
