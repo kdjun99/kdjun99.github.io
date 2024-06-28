@@ -240,6 +240,6 @@ jekyll_compose:
       image:
       category:
       tags:
-      published: false
-      sitemap: false
+      published: true
+      sitemap: true
       author: kim-dong-jun99
