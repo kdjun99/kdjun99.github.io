@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring - Caching.1
+title: Spring  Caching.1
 date: 2024-07-03 13:01 +0900
 description: @Cacheable 어노테이션과 Redis를 이용한 데이터 caching 처리
 image:
