@@ -24,6 +24,7 @@ cache 데이터 저장소로는 스프링 내부에 데이터를 저장할 수 �
 # 도입 과정
 
 > Spring boot 3.0.2
+>
 > aws ubuntu 22.04
 
 aws ubuntu ec2 인스턴스를 생성한 후 docker 를 이용해서 redis 서버를 실행합니다.
@@ -267,4 +268,5 @@ LocalDateTime 자료형을 계속 String 형태로 리턴해주기 위해서 Loc
 페이징 처리된 조회 결과 역시 redis에 저장이 불가했습니다. 이 문제도 페이지 내부에 있는 dto 리스트와 totalElement를 저장하는 클래스를 하나 만들고 해당 클래스로 redis에 저장, controller 단에서는 service 단에서 리턴한 클래스로 부터 페이지 결과를 반환하는 방식으로 문제를 해결했습니다.
 
 전체 프로젝트 코드는 아래 깃허브 링크에서 확인 가능합니다.
+
 [https://github.com/rastle-dev/rastle_backend](https://github.com/rastle-dev/rastle_backend)
