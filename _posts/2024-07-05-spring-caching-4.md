@@ -91,6 +91,8 @@ write through 패턴 보다 훨씬 빠르다는 장점이 있습니다. cache mi
 ## 프로젝트에 적용할 캐시 패턴
 
 관리자가 업데이트 작업을 빈번하게 하지 않고, 데이터 정합성이 매우 중요합니다
-그렇기에 read through, write through 패턴을 사용하고 redis cache에 replication, cluster를 구축해 레디스 장애 발생 시에도 서비스 운영이 가능하게 구성할 계획입니다.
+그렇기에 read through, write through 패턴을 사용해야할 것으로 보여집니다.
+
+이번 글에서는 캐시 읽기, 쓰기 전략에 대해서 알아보았습니다. 다음 글에서는 적용 가능한 다양한 캐시 옵션에 대해서 정리하고, 프로젝트에 도입할 캐시 정책에 대해서 다뤄보겠습니다.
 
 [참고 블로그 링크](https://inpa.tistory.com/entry/REDIS-📚-캐시Cache-설계-전략-지침-총정리#)

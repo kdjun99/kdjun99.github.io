@@ -31,5 +31,5 @@ cacheable 어노테이션을 통해 look aside 전략을 이용해서 데이터�
 
 > [참고 블로그 링크](https://inpa.tistory.com/entry/REDIS-📚-캐시Cache-설계-전략-지침-총정리#write_through_패턴)
 
-다음 포스팅에서 학습한 cache 패턴에 대한 정리와 프로젝트에 해당 cache 패턴을 적용하는 방법을 정리해보겠습니다.
+다음 포스팅에서 학습한 cache 패턴에 대해서 다뤄보겠습니다.
 
