@@ -4,8 +4,8 @@ title: Spring - Caching.5
 date: 2024-07-06 16:10 +0900
 description: 프로젝트에 적용할 캐시 정책 수립하기
 image:
-category: [“spring”, “cache”]
-tags: [“hibernate cache", "spring cache", "browser cache"]
+category: ["spring-cache", "project"]
+tags: ["cache-level"]
 published: true
 sitemap: true
 author: kim-dong-jun99
@@ -35,7 +35,7 @@ author: kim-dong-jun99
 
 사용자가 다시 사이트를 방문한다면, 캐시된 응답을 받으므로 전보다 빠르게 웹 사이트를 받을 수 있습니다.
 
-[https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-server-side-caching-works.png](https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-server-side-caching-works.png)
+![https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-server-side-caching-works.png](https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-server-side-caching-works.png)
 > 이미지 출처 [https://medium.com/@tmakhlay2/cache-me-outside-1b312e04ead6](https://medium.com/@tmakhlay2/cache-me-outside-1b312e04ead6)
 
 ### 클라이언트 사이드 캐시
@@ -44,7 +44,7 @@ author: kim-dong-jun99
 
 따라서 사용자가 클라이언트 사이드 캐싱이 활성화된 웹사이트를 다시 방문할 때, 서버에 데이터를 요청하지 않고 사용자 장치에 있는 브라우저 캐시 폴더에서 데이터를 가져옵니다.
 
-[https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-client-side-caching-works.png](https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-client-side-caching-works.png)
+![https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-client-side-caching-works.png](https://wp-rocket.me/wp-content/uploads/2022/12/Illustration-of-how-client-side-caching-works.png)
 > 이미지 출처 [https://medium.com/@tmakhlay2/cache-me-outside-1b312e04ead6](https://medium.com/@tmakhlay2/cache-me-outside-1b312e04ead6)
 
 ### 서버 사이드 vs 클라이언트 사이드

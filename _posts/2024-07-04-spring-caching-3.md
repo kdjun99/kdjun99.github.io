@@ -1,10 +1,10 @@
 ---
 layout: post
-title: Spring Caching.3
+title: Spring - Caching.3
 date: 2024-07-04 17:10 +0900
 description: 도입한 caching 전략의 문제점 분석 & cache 읽기, 쓰기 전략 정리
 image:
-category: ["spring", "jpa", "hibernate"]
+category: ["spring-cache", "project"]
 tags: ["cache"]
 published: true
 sitemap: true

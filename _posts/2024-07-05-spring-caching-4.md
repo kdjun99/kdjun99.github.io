@@ -4,8 +4,8 @@ title: Spring - Caching.4
 date: 2024-07-05 19:26 +0900
 description: 다양한 cache 읽기, 쓰기 전략 정리
 image:
-category: [“cache”]
-tags: [“cache”]
+category: ["spring-cache", "project"]
+tags: ["cache", "cache strategy"]
 published: true
 sitemap: true
 author: kim-dong-jun99
