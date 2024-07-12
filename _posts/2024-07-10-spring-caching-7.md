@@ -112,3 +112,85 @@ Hazelcast는 설정파일이나, `Config` 오브젝트를 이용해서 정적으
 
 동적인 설정은 `Programmatic API`, `Management Center`, `REST` 등과 같은 방법으로 설정 가능하고, 별도의 설정을 하지 않으면 동적으로 설정한 내용들은 클러스터 재시작시 사라집니다. 
 
+**near cache**
+
+map entry 는 Hazelcast 클러스터에 파티션되어 저장됩니다. 특정 키를 자주 조회하는 상황에서, 해당 키가 다른 파티션에 위치한다면 매번 네트워크 비용이 발생하게 됩니다. 이런 경우에 near cache 도입을 고려해볼 수 있습니다. near cache를 사용하면 조회시 네트워크 비용이 발생하지 않는다는 장점이 있지만, 다음 같은 내용들을 고려해야합니다.
+- JVM이 더 많은 데이터를 cache하기에 메모리를 더 많이 사용하게 됩니다.
+- 만약 invalidation 설정이 되어 있을 때, 데이터가 자주 변경된다면 invalidation 처리 비용이 비쌉니다.
+- near cache는 강한 데이터 일관성을 깰 수 있습니다.
+
+near cache는 다음과 같이 설정할 수 있습니다.
+
+```xml
+    <near-cache>
+      <!--
+        Maximum size of the near cache. When max size is reached,
+        cache is evicted based on the policy defined.
+        Any integer between 0 and Integer.MAX_VALUE. 0 means
+        Integer.MAX_VALUE. Default is 0.
+      -->
+      <max-size>5000</max-size>
+
+      <!--
+        Maximum number of seconds for each entry to stay in the near cache. Entries that are
+        older than <time-to-live-seconds> will get automatically evicted from the near cache.
+        Any integer between 0 and Integer.MAX_VALUE. 0 means infinite. Default is 0.
+      -->
+      <time-to-live-seconds>0</time-to-live-seconds>
+
+      <!--
+        Maximum number of seconds each entry can stay in the near cache as untouched (not-read).
+        Entries that are not read (touched) more than <max-idle-seconds> value will get removed
+        from the near cache.
+        Any integer between 0 and Integer.MAX_VALUE. 0 means
+        Integer.MAX_VALUE. Default is 0.
+      -->
+      <max-idle-seconds>60</max-idle-seconds>
+
+      <!--
+        Valid values are:
+        NONE (no extra eviction, <time-to-live-seconds> may still apply),
+        LRU  (Least Recently Used),
+        LFU  (Least Frequently Used).
+        NONE is the default.
+        Regardless of the eviction policy used, <time-to-live-seconds> will still apply.
+      -->
+      <eviction-policy>LRU</eviction-policy>
+
+      <!--
+        Should the cached entries get evicted if the entries are changed (updated or removed).
+        true of false. Default is true.
+      -->
+      <invalidate-on-change>true</invalidate-on-change>
+
+      <!--
+        You may want also local entries to be cached.
+        This is useful when in memory format for near cache is different than the map's one.
+        By default it is disabled.
+      -->
+      <cache-local-entries>false</cache-local-entries>
+    </near-cache>
+```
+
+**region factory**
+
+jpa와 함께 hazelcast를 사용할 때, region factory를 설정해야합니다. 사용할 수 있는 region factory는 두 종류가 있습니다.
+
+**HazelcastCacheRegionFactory**
+
+Hazelcast 표준 DistributedMap를 사용합니다. get, put, remove 같은 operation 들은 모두 DistributedMap 로직을 이용해 수행됩니다. HazelcastCacheRegionFactory의 유일한 단점은 *HazelcastLocalCacheRegionFactory* 와 비교했을 때 성능이 떨어진다는 점입니다. HazelcastCacheRegionFactory를 사용해서 다음 cache들을 사용할 수 있습니다.
+
+- EntityCache
+- CollectionCache
+- TimeStampCache
+
+> HazelcastCacheRegionFactory를 사용하면 ManagementCenter를 통해 map를 확인할 수 있습니다.
+
+**HazelcastLocalCacheRegionFactory**
+
+![https://docs.hazelcast.org/docs/3.3/manual/html-single/images/HZLocalCacheRgnFactory.jpg](https://docs.hazelcast.org/docs/3.3/manual/html-single/images/HZLocalCacheRgnFactory.jpg)
+
+이 구조에서 각 클러스터 멤버들은 local map를 가지고, 각 map들은 HazelcastTopic에 등록되어있습니다. 멤버에서 `put` 혹은 `remove` 작업이 발생하면 토픽에 invalidation message가 생성되고 다른 멤버들에게 전달됩니다. 메세지를 전달받은 멤버들은 invalidation message에 전달된 키를 local map에서 삭제합니다. 해당 키 값에 대해 `get` 작업이 실행되면, 키 값은 새로운 value로 업데이트 됩니다. 
+
+만약 조회 작업이 주를 이룬다면, 이 구조를 채택해 성능을 향상시킬 수 있습니다.
+
