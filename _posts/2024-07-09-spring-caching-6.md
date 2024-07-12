@@ -228,6 +228,7 @@ redis 를 이용해 hibernate second level cache에 대하여 알아봤습니다
 - apache ignite
 - hazelcast
 - ehcache
+- oracle coherence
 
 각 캐시 구현체들의 특징에 대해서 공부해보고, 프로젝트에 도입할 캐시 구현체를 결정할 계획입니다.
 
