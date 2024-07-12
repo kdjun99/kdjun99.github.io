@@ -13,7 +13,7 @@ author: kim-dong-jun99
 
 ## redisson & hibernate 2차 캐시 설정
 
-최종적으로 구성 결정한 hazelcast를 도입하기 전에, 현재 배포된 redis를 이용해 jpa 2차 캐시 동작 확인을 진행했습니다.      
+현재 배포된 redis를 이용해 jpa 2차 캐시 동작 확인을 진행했습니다.      
 공식 문서를 참고해가며 어렵지 않게 redis 2차 캐시를 구성할 수 있었습니다.
 
 - [하이버네이트 캐싱 공식 문서](https://docs.jboss.org/hibernate/orm/6.1/userguide/html_single/Hibernate_User_Guide.html#caching)
@@ -225,12 +225,7 @@ entity와 query 모두에 적당한 캐시 전략을 설정해두면, 문제없�
 하지만 querydsl의 경우, cache에서 데이터를 읽어오지 않고, 실행할 때마다 데이터베이스 쿼리가 실행되는 것을 확인할 수 있었습니다. 원인 파악을 위해 구글링 해본 결과,querydsl는 jpql 빌더이기에 영속성 컨텍스트에서 먼저 값을 찾는 것이 아니라, sql로 번역되어서 우선 실행된다는 내용을 알 수 있었습니다.
 
 현재 전체 상품 조회, 인기 상품 조회 api는 querydsl을 이용해 동적 쿼리를 처리하도록 구현되어있습니다.      
-querydsl에서 처리하는 동적 쿼리에도 caching이 적용되어야하기에, jooq 라이브러리의 도입을 이후 포스팅에서 다뤄볼 계획입니다.
+querydsl에서 처리하는 동적 쿼리에도 caching이 적용되어야하기에,   문제 해결 과정을 이후 포스팅에서 다뤄볼 계획입니다.
 
-----
-
-프로젝트에 caching을 도입하기 위해서 spring cache, hibernate cache, 다양한 캐싱 전략에 대해서 학습해보았습니다. 포스팅을 작성하면서 학습을 통해 hibernate 2차 캐시와 hazelcast를 이용하기로 최종 결정하였습니다. 
-
-이후 포스팅에서 hazelcast의 도입과 imdg 라는 기술에 대해서 그리고 spring boot 3에 jooq를 도입하는 과정에 대해서 정리해보겠습니다.
 
 
