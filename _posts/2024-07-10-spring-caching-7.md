@@ -82,7 +82,7 @@ Hazelcast 개요 섹션에 나와 있는 기능 목록에서 볼 수 있듯이, 
 
 **discovery mechanisms**
 
-Hazelcast 클러스터를 구성하기 위해서는 Hazelcast를 실행하는 멤버들을 클러스터로 묶어야합니다. Hazelcast는 다양한 클러스터링 매커니즘을 소개하는데, 프로젝트에 적용할 TCP/IP 설정에 대해서 간단하게 알아보겠습니다.
+Hazelcast 클러스터를 구성하기 위해서는 Hazelcast를 실행하는 멤버들을 클러스터로 묶어야합니다. Hazelcast는 다양한 클러스터링 매커니즘을 소개하는데, TCP/IP 매커니즘 설정에 대해서 간단하게 알아보겠습니다.
 
 ```yaml
 hazelcast:
