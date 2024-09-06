@@ -136,3 +136,11 @@ fun main() = runBlocking {
 ```
 
 만약 위 코드를 스레드를 이용해서 처리하려면, 훨씬 더 많은 메모리를 사용하게 됩니다. 
+
+- [https://kotlinlang.org/docs/coroutines-basics.html#coroutines-are-light-weight](https://kotlinlang.org/docs/coroutines-basics.html#coroutines-are-light-weight)
+- [https://dev.gmarket.com/82](https://dev.gmarket.com/82)
+- [https://perfectacle.github.io/2023/07/10/java-virtual-thread-vs-kotlin-coroutine/](https://perfectacle.github.io/2023/07/10/java-virtual-thread-vs-kotlin-coroutine/)
+- [https://d2.naver.com/helloworld/1203723](https://d2.naver.com/helloworld/1203723)
+- [https://reactivex.io/tutorials.html](https://reactivex.io/tutorials.html)
+- [https://introtorx.com/chapters/foreword](https://introtorx.com/chapters/foreword)
+
