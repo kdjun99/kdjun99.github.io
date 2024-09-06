@@ -618,4 +618,101 @@ fun main() = runBlocking {
 
 CALLBACK 방식으로 동작했을 때와 총 실행 시간은 비슷합니다. 하지만 아무런 콜백도 필요하지 않습니다.
 
+`loadContributorsConcurrent()` 함수는 다음과 같이 작성할 수 있습니다.
 
+```kotlin
+suspend fun loadContributorsConcurrent(
+    service: GitHubService,
+    req: RequestData
+): List<User> = coroutineScope {
+    val repos = service
+        .getOrgRepos(req.org)
+        .also { logRepos(req, it) }
+        .bodyList()
+
+    val deferreds: List<Deferred<List<User>>> = repos.map { repo ->
+        async {
+            service.getRepoContributors(req.org, repo.name)
+                .also { logUsers(repo, it) }
+                .bodyList()
+        }
+    }
+    deferreds.awaitAll().flatten().aggregate()
+}
+```
+
+각 레포지토리에 contributor를 조회하는 부분을 `async`로 감싸는 것으로 contributor 조회를 새로운 코루틴에서 실행할 수 있습니다. 코루틴 생성은 많은 리소스를 소모하지 않기에 많이 생성할 수 있습니다.
+
+생성된 코루틴들은 `Deferred<List<User>>` 를 리턴합니다. `awaitAll()` 을 사용하여 모든 코루틴의 작업이 끝날때까지 대기하고, `awaitAll()`은 `List<List<User>>`를 리턴합니다. `flatten().aggregate()` 을 호출해 `List<User>`를 리턴가능합니다ㅏ.
+
+실행 결과 로그를 확인해보면, UI 스레드 위에서 여러 코루틴들이 실행되는 것을 확인 가능합니다.
+```text
+248 [AWT-EventQueue-0] INFO  Contributors - Clearing result
+2916 [AWT-EventQueue-0 @coroutine#1] INFO  Contributors - kotlin: loaded 100 repos
+3185 [AWT-EventQueue-0 @coroutine#3] INFO  Contributors - kotlin-eclipse: loaded 30 contributors
+3200 [AWT-EventQueue-0 @coroutine#5] INFO  Contributors - ts2kt: loaded 11 contributors
+3207 [AWT-EventQueue-0 @coroutine#4] INFO  Contributors - kotlin-examples: loaded 30 contributors
+3242 [AWT-EventQueue-0 @coroutine#7] INFO  Contributors - dokka: loaded 100 contributors
+3328 [AWT-EventQueue-0 @coroutine#6] INFO  Contributors - kotlin-koans: loaded 43 contributors
+3453 [AWT-EventQueue-0 @coroutine#8] INFO  Contributors - kotlin-benchmarks: loaded 10 contributors
+....
+```
+
+`Contributor`코루틴들이 서로 다른 스레드에서 실행되기 위해서는 `async` 함수에 다음과 같은 인자를 추가해야합니다.
+```kotlin
+async(Dispatcher.Default) {
+
+}
+```
+- CoroutineDispatcher : 코루틴이 어떤 스레드 혹은 스레드들에서 실행되어야하는지를 지정합니다. 인자를 넘기지 않는다면, 외부 스코프의 dispatcher를 사용하게 됩니다.
+- Dispatcher.Default : JVM의 공유 스레드 풀을 의미합니다. 이 스레드 풀을 병렬 실행을 위해 제공됩니다. cpu 코어가 가용한만큼의 스레드로 구성됩니다. 코어가 1개 더라도 스레드는 2개로 구성됩니다.
+
+```kotlin
+async(Dispatchers.Default) {
+            log("starting loading for ${repo.name}")
+            service.getRepoContributors(req.org, repo.name)
+                .also { logUsers(repo, it) }
+                .bodyList()
+        }
+```
+`aync` block을 위와 같이 변경하고 코드를 실행하면,
+```text
+310 [AWT-EventQueue-0] INFO  Contributors - Clearing result
+3265 [AWT-EventQueue-0 @coroutine#1] INFO  Contributors - kotlin: loaded 100 repos
+3272 [DefaultDispatcher-worker-2 @coroutine#5] INFO  Contributors - starting loading for ts2kt
+3272 [DefaultDispatcher-worker-3 @coroutine#3] INFO  Contributors - starting loading for kotlin-eclipse
+3272 [DefaultDispatcher-worker-1 @coroutine#4] INFO  Contributors - starting loading for kotlin-examples
+3272 [DefaultDispatcher-worker-4 @coroutine#6] INFO  Contributors - starting loading for kotlin-koans
+3272 [DefaultDispatcher-worker-5 @coroutine#7] INFO  Contributors - starting loading for dokka
+3273 [DefaultDispatcher-worker-6 @coroutine#8] INFO  Contributors - starting loading for kotlin-benchmarks
+...
+```
+
+여러개의 스레드에서 병렬적으로 실행되는 것을 확인할 수 있습니다.
+
+ui 스레드에서만 코루틴을 실행하고 싶으면 `Dispatchers.Main`을 인자로 넘기면 됩니다. 
+```kotlin
+launch(Dispatchers.Main) {
+  updateResults()
+}
+```
+- 만약 새로운 코루틴을 시작할 때, 메인 스레드가 busy하다면, 코루틴은 중단되고, 메인 스레드가 schedule 됩니다. 메인 스레드가 free가 된 순간, 코루틴은 작업을 이어서 진행합니다.
+- end-point마다 dispatcher를 명시적으로 선언하기보다, 외부 스코프의 dispatcher를 쓰는 것이 권장됩니다. 
+  - `loadContributorsConcurrent`에 `Dispatchers.Default`를 할당하지 않고 정의한다면, context에 구애받지 않고 함수를 사용가능합니다.
+  - 외부 스코프에 따라 dispatcher가 지정되기에
+- 테스트 환경에서는 `TestDispatcher`를 이용해 호출하는데 이런 상황에서 더 적합합니다.
+
+다음과 같은 코드를 이용해 호출할 때, 사용할 dispatcher를 지정할 수 있습니다.
+```kotlin
+launch(Dispatchers.Default) {
+    val users = loadContributorsConcurrent(service, req)
+    withContext(Dispatchers.Main) {
+        updateResults(users, startTime)
+    }
+}
+```
+`loadContributorsConcurrent`는 외부 dispatcher를 상속받아서 사용하고, `updateResults`는 ui 스레드에서 실행할 수 있는 코드입니다.
+
+`withContext`는 주어진 코드를 특정 context에서 실행하고, 코드가 완료될 때까지 중단됩니다. `withContext` 대신에 `launch(context) { ...  }.join()`을 호출할 수 있고, 이것이 좀 더 명시적인 방법입니다.
+
+https://kotlinlang.org/docs/coroutines-and-channels.html#structured-concurrency
