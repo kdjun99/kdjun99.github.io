@@ -715,4 +715,138 @@ launch(Dispatchers.Default) {
 
 `withContext`는 주어진 코드를 특정 context에서 실행하고, 코드가 완료될 때까지 중단됩니다. `withContext` 대신에 `launch(context) { ...  }.join()`을 호출할 수 있고, 이것이 좀 더 명시적인 방법입니다.
 
-https://kotlinlang.org/docs/coroutines-and-channels.html#structured-concurrency
+## 구조적 동시성
+
+**코루틴 스코프**는 서로 다른 코루틴 간에 구조와 부모-자식 관계에 대한 책임이 있습니다. 새로운 코루틴은 보통 스코프 내부에서 시작됩니다.
+
+**코루틴 컨텍스트** 는 주어진 코루틴을 실행하는데 필요한 추가적인 정보(코루틴 이름, 코루틴이 스케줄된 dispatcher 등)를 저장합니다.
+
+`launch`, `async`, `runBlocking`을 이용해 새로운 코루틴을 시작할 때, 그에 상응하는 코루틴 스코프가 생성됩니다. 이 모든 함수는 람다와 함께 수신자를 인자로 받으며, 이때 CoroutineScope가 암묵적인 수신자 타입으로 사용됩니다.
+
+```kotlin
+launch { /* this: CoroutineScope */ }
+```
+- 새로운 코루틴은 스코프 내부에서만 생성가능합니다.
+- launch와 async는 CoroutineScope의 확장 함수로 선언되었기 때문에, 이들을 호출할 때는 항상 암시적 또는 명시적인 수신자를 전달해야 합니다.
+- runBlocking에 의해 시작되는 코루틴은 예외입니다. runBlocking은 최상위 함수로 정의되어 있기 때문입니다. 하지만 이 함수는 현재 스레드를 차단하기 때문에, 주로 main() 함수나 테스트에서 브릿지 함수로 사용됩니다.
+
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun main() = runBlocking { /* this: CoroutineScope */
+  launch { /* .. */ }
+  // 아래와 동일합니다.
+  this.launch { /* .. */ }
+}
+```
+
+`runBlocking` 내부에서 `launch`를 호출하면, 이는 `CoroutineScope`타입의 암시적 수신자의 확장 함수로 호출됩니다. 또는 명시적으로 `this.launch`라고 쓸 수도 있습니다.
+
+위 예제에서 `launch`에 의해 시작된 중첩된 코루틴은 외부 코루틴(`runBlocking`에 의해 시작된 코루틴)의 자식으로 간주될 수 있습니다. 이 부모-자식 관계는 스코프를 통해 작동하며, 자식 코루틴은 부모 코루틴에 해당하는 스코프에서 시작됩니다.
+
+`coroutineScope` 함수를 사용하면 새로운 코루틴을 시작하지 않고도 새로운 스코프를 생성할 수 있습니다. 외부 스코프에 접근할 수 없는 상황에서 일시 중단 함수 내에서 구조적으로 새로운 코루틴을 시작하려면, 이 일시 중단 함수가 호출된 외부 스코프의 자식이 되는 새로운 코루틴 스코프를 생성할 수 있습니다.
+`loadContributorsConcurrent()`가 그 좋은 예입니다.
+```kotlin
+CONCURRENT -> { // Performing requests concurrently
+                launch(Dispatchers.Default) {
+                    val users = loadContributorsConcurrent(service, req)
+                    withContext(Dispatchers.Main) {
+                        updateResults(users, startTime)
+                    }
+                }.setUpCancellation()
+            }
+
+suspend fun loadContributorsConcurrent(
+    service: GitHubService,
+    req: RequestData
+): List<User> = coroutineScope {
+    val repos = service
+        .getOrgRepos(req.org)
+        .also { logRepos(req, it) }
+        .bodyList()
+
+    val deferreds: List<Deferred<List<User>>> = repos.map { repo ->
+        async {
+            log("starting loading for ${repo.name}")
+            service.getRepoContributors(req.org, repo.name)
+                .also { logUsers(repo, it) }
+                .bodyList()
+        }
+    }
+    deferreds.awaitAll().flatten().aggregate()
+}
+```
+`GlobalScope.async` 혹은 `GlobalScope.launch`를 이용해서 새로운 코루틴을 생성할 수 있습니다.
+이는 탑 레벨 독립적인 코루틴을 생성하게 됩니다.
+
+**contributor load 취소하기**
+
+`coroutineScope`를 이용해 생성된 스코프는 부모가 종료됨에 따라 함께 종료되지만, `GlobalScope.async`로 생성된 코루틴은 종료되지 않습니다.
+```kotlin
+suspend fun loadContributorsNotCancellable(service: GitHubService, req: RequestData): List<User> {
+    val repos = service
+        .getOrgRepos(req.org)
+        .also { logRepos(req, it) }
+        .bodyList()
+
+    val deferreds: List<Deferred<List<User>>> = repos.map { repo ->
+        GlobalScope.async {
+            log("starting loading for ${repo.name}")
+            service.getRepoContributors(req.org, repo.name)
+                .also { logUsers(repo, it) }
+                .bodyList()
+        }
+    }
+    return deferreds.awaitAll().flatten().aggregate()
+}
+```
+
+**외부 스코프 컨텍스트 사용하기**
+
+주어진 스코프에서 새로운 코루틴을 실행하면, 코루틴이 같은 컨텍스트에서 실행되는 것을 보장할 수 있습니다. 그리고 필요하면 컨텍스트를 변경하는 것도 쉽습니다.
+
+## showing progress
+
+```kotlin
+suspend fun loadContributorsProgress(
+    service: GitHubService,
+    req: RequestData,
+    updateResults: suspend (List<User>, completed: Boolean) -> Unit
+) {
+    val repos = service
+        .getOrgRepos(req.org)
+        .also { logRepos(req, it) }
+        .bodyList()
+
+    var allUsers = emptyList<User>()
+    for ((index, repo) in repos.withIndex()) {
+        val users = service.getRepoContributors(req.org, repo.name)
+            .also { logUsers(repo, it) }
+            .bodyList()
+
+        allUsers = (allUsers + users).aggregate()
+        updateResults(allUsers, index == repos.lastIndex)
+    }
+}
+```
+
+위와 같이 코드를 작성하면, contributor들을 받아온 결과를 즉시 ui에 반영할 수 있습니다.
+
+**consecutive vs concurrent**
+
+위에서 작성한 코드는 다음과 같은 과정으로 동작합니다.
+
+![https://kotlinlang.org/docs/images/progress.png](https://kotlinlang.org/docs/images/progress.png)
+
+순차적으로 실행되기에 synchronization이 필요하지 않습니다.
+
+가장 좋은 방법은 아래와 같은 동작 방식으로 동작하는 것입니다.
+
+![https://kotlinlang.org/docs/images/progress-and-concurrency.png](https://kotlinlang.org/docs/images/progress-and-concurrency.png)
+
+**channel**이라는 개념을 이용해서 동시성을 추가할 수 있습니다.
+
+## channels
+
+
