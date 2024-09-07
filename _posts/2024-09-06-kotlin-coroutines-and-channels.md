@@ -849,4 +849,41 @@ suspend fun loadContributorsProgress(
 
 ## channels
 
+코루틴은 채널을 이용해 서로 통신할 수 있습니다.
+
+![https://kotlinlang.org/docs/images/using-channel.png](https://kotlinlang.org/docs/images/using-channel.png)
+
+한 코루틴이 채널을 통해 정보를 전송할 수 있고, 다른 코루틴은 채널로부터 정보를 수신할 수 있습니다.
+
+정보를 전송하는 코루틴을 producer, 정보를 전달받는 코루틴을 consumer라고 합니다. 다수의 코루틴이 동일한 채널에 정보를 전송할 수 있고, 다수의 코루틴이 한 채널에서 데이터를 받아올 수 있습니다.
+
+![https://kotlinlang.org/docs/images/using-channel-many-coroutines.png](https://kotlinlang.org/docs/images/using-channel-many-coroutines.png)
+
+다수의 코루틴이 한 채널에서 정보를 받을 때, 각 엘리멘트는 consumer 중 하나로 전달되어 한번만 처리됩니다. 
+처리된 엘리멘트는 즉시 채널에서 삭제됩니다.
+
+채널을 엘리멘트가 더해지고 다른 한쪽에서 소비되는 큐로 생각할 수 있습니다. 
+하지만 채널은 일반적인 컬렉션들과는 큰 차이점을 가지고 있습니다.
+채널은 send()와 receive() 연산을 suspend할 수 있습니다. 
+채널이 비었거나, 가득 찬 경우에 suspend 될 수 있습니다. 채널의 크기에 제한이 있는 경우, 채널은 가득찰 수 있습니다.
+
+`Channel`은 3가지 인터페이스를 가지고 있습니다. `SendChannel`, `ReceiveChannel`, `Channel`을 가지고 있습니다.
+보통 채널을 생성해서 프로듀서에게는 `SendChannel` 인스턴스로 전달해서 채널로 정보를 보낼 수 있게만 합니다.
+그리고 컨슈머에게는 `ReceiveChannel` 인스턴스를 전달해서 정보를 받을 수만 있게합니다.
+
+```kotlin
+interface SendChannel<in E> {
+    suspend fun send(element: E)
+    fun close(): Boolean
+}
+
+interface ReceiveChannel<out E> {
+    suspend fun receive(): E
+}
+
+interface Channel<E> : SendChannel<E>, ReceiveChannel<E>
+```
+
+`send`, `receive` 모두 suspend 함수로 선언된 것을 확인할 수 있습니다.
+
 
