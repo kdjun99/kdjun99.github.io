@@ -6,7 +6,7 @@ description: python type hints에 대하여
 image:
 category: ["python", "fastapi"]
 tags: ["type hints", "type annotations"]
-published: true
+published: false
 sitemap: true
 author: kim-dong-jun99
 ---
