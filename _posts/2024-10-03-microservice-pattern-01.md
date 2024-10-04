@@ -46,7 +46,7 @@ author: kim-dong-jun99
 
 책에서는 마이크로서비스 아키텍쳐의 정의를 scale cube를 이용해 설명합니다.
 
-![https://miro.medium.com/v2/resize:fit:1100/format:webp/0*8GG1bwVR-PJNRW6d.png](https://miro.medium.com/v2/resize:fit:1100/format:webp/0*8GG1bwVR-PJNRW6d.png)
+![https://microservices.io/i/DecomposingApplications.021.jpg](https://microservices.io/i/DecomposingApplications.021.jpg)
 
 **X 축 : horizontal duplication**
 - X 축으로의 확장은 모놀리식 애플리케이션의 확장 방법과 공통됩니다. 로드밸런서 뒤에 여러 애플리케이션 인스턴스를 실행할 수 있습니다.
