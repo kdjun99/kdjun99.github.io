@@ -2,7 +2,7 @@
 layout: post
 title: microservice pattern.01
 date: 2024-10-03 10:57 +0900
-description: "microservice patterns" 책을 통해 학습한 내용을 정리한 글입니다.
+description: microservice patterns 책을 통해 학습한 내용을 정리한 글입니다.
 image:
 category: ["msa"]
 tags:
