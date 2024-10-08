@@ -360,7 +360,7 @@ FTGO 아키텍처에서 주문을 받고, 주문을 처리하고, 배달을 하�
 이렇게 구성하는 것이 변경 사항을 구성할 때 변경하고 배포해야될 서비스의 수를 줄일 수 있습니다.
 
 > SRP와 CCP는 Bob Martin에 의해 개발된 11개의 원칙 중 2가지입니다.
-> 다른 원칙들은 [Bob Martin article](http://butunclebob.com/ArticleS.UncleBob.PrinciplesOfOod)에서 확인 가능합니다.
+> 다른 원칙들은 [Bob Martin article](https://butunclebob.com/ArticleS.UncleBob.PrinciplesOfOod)에서 확인 가능합니다.
 
 ### obstacles to decomposing an application into services
 
