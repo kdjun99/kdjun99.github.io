@@ -65,6 +65,7 @@ logical 뷰는 애플리케이션의 클래스를 다음과 같은 레이어로 
 
 hexagonal architecture은 레이어드 아키텍처 스타일의 대안입니다.
 <img width="758" alt="Screenshot 2024-10-04 at 15 46 24" src="https://github.com/user-attachments/assets/d20ad931-f5b9-4737-afef-8be95794ca30">
+
 헥사고날 아키텍처는 비즈니스 로직을 중심에 위치시키는 방법으로 logical view를 구성합니다.
 presentation layer 대신, 애플리케이션은 하나 혹은 그 이상의 inbound adapters를 가집니다. 
 이 inbound adapters들은 비즈니스 로직을 유발하는 외부 요청들을 처리합니다.
