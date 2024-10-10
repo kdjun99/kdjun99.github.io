@@ -132,4 +132,59 @@ JSON, XML, Protobuf 같이 주고 받는 메세지 형식을 명시해야합니�
 브로커를 사용하지 않고 서비스끼리 직접적으로 소통하는 방식도 존재합니다.
 각 방식의 장단점은 존재하지만, 보통은 브로커 기반 구조가 더 나은 접근입니다.
 
+<img width="758" alt="Screenshot 2024-10-10 at 21 50 58" src="https://github.com/user-attachments/assets/5286bed0-7e9a-4151-b51b-b6ea8ec030d2">
+> broker less 방식은 네트워크 지연이 덜하고, (브로커를 거치지 않기에) 메세지 브로커로 인한 병목, SPOF가 발생하지는 않지만, 
+> 감소된 가용성, 그리고 서비스 디스커버리의 필요하다는 점들이 동기적 request/response와 동일하기에 자주 사용되지 않습니다.
+
+메세지 브로커는 모든 메세지가 흐르는 중간계층입니다.
+센더는 메세지를 메세지 브로커에 전송하고, 브로커가 리시버에게 전달합니다.
+브로커를 사용하는 이점은, **센더가 컨슈머의 네트워크 위치를 몰라도 된다**는 점입니다.
+또 다른 이점은 **메세지 브로커는 컨슈머가 메세지를 처리할 수 있을 때까지 메세지를 대기**시킨다는 점입니다.
+
+다음과 같이 다양한 메세지 브로커가 존재합니다.
+- [ActiveMQ](https://activemq.apache.org/)
+- [RabbitMQ](https://www.rabbitmq.com/)
+- [Apache Kafka](https://kafka.apache.org/)
+
+혹은 AWS Kinesis나 AWS SQS 같은 클라우드 기반 메세지 브로커도 존재합ㅂ니다.
+
+메세지 브로커를 선택할 때, 다음과 같은 고려사항들을 고려하여 선택해야합니다.
+- supported programming languages : 브로커가다양한 프로그래밍 언어를 지원하는지 
+- supported messaging standards : 브로커가 AMQP, STOMP 같은 표준을 지원하는지
+- messaging ordering : 브로커가 메세지의 순서를 보장하는지
+- delivery guarantees : 브로커가 어떤 방식의 전송 보장을 제공하는지
+- persistence : 메세지가 디스크에 저장되고, 브로커가 중지되어도 휘발되지 않는지
+- durability : 컨슈머가 브로커에 다시 연결될 때, 연결되지 못했을 때 발행된 메세지들도 받을 수 있는지
+- scalability : 브로커가 얼마나 확장 가능한지
+- latency : end-to-end 지연시간이 얼마나 되는지
+- competing consumers : competing consumers를 지원하는지
+
+각 브로커는 다른 장단점을 가집니다. 예를 들어 매우 낮은 지연시간을 제공하는 브로커는 메세지의 순서를 보장하지 못하거나, 메세지의 전송 보장을 제공하지 못할 수 있습니다.
+전송을 보장하고 디스크에 메세지를 저장하는 브로커는 지연 시간이 상대적으로 클 수 있습니다.
+
+**implementing message channels using a message broker**
+
+메세지 브로커마다 메세지 채널의 개념을 서로 다른 방식으로 구현합니다.
+
+| Message Broker | Point-to-point channel | Publish-subscribe channel |
+|----------------|------------------------|---------------------------|
+| JMS | Queue | Topic |
+| Apache Kafka | Topic | Topic |
+| AMQP-based brokers, such as Rabbit MQ | Exchange + Queue | Fanout exchange and a queue per consumer |
+| AWS Kinesis | Stream | Stream |
+| AWS SQS | Queue | X |
+
+거의 대부분의 메세지 브로커는 point-to-point 채널과 publish-subscribe 채널을 지원합니다.
+
+브로커 기반 메세징의 장점은 다음과 같습니다.
+- **loose coupling** : 클라이언트는 서비스 인스턴스를 몰라도 적합한 메세지 채널에만 리퀘스트를 보내면 됩니다. 서비스 디스커버리 메커니즘이 필요 없습니다.
+- **message buffering** : 메세지 브로커는 메세지가 처리될까지 버퍼에 저장할 수 있습니다. HTTP 같은 동기적 request/response 프로토콜은 요청과 응답이 교환될 때, 클라이언트와 서비스 모두 available 해야됩니다. 메세징에서는 consumer에서 메세지가 처리될 때까지 메세지를 큐에 저장할 수 있습니다. 온라인 쇼핑몰을 예시로 들면, 주문 재고 처리 시스템이 느리거나 가용하지 않은 상황에서도 주문을 처리할 수 있습니다. 메세지는 큐에 쌓일 것이고, 나중에 사용가능할 때 처리 될 것입니다.
+- **flexible communication** : 메세징은 앞서 언급된 모든 상호작용 스타일이 가능합니다.
+- **explicit interprocess communication** : RPC 기반 메커니즘은 원격 서비스를 호출하는 것을 로컬 서비스를 호출하는 것과 동일해 보이도록 시도했습니다. 하지만 실상은 좀 다릅니다. 메세징은 로컬 서비스와 명시적으로 구분되므로, 개발자들이 잘못된 안전감에 빠지지 않도록 합니다.
+
+단점은 다음과 같습니다.
+- **potential bottleneck** : 메세지 브로커가 성능의 병목이 될 수 있지만, 메세지 브로커는 확장 가능합니다.
+- **potential single point of failure** : 시스템의 신뢰도에 영향을 미치지 않으려면, 고가용성이 제공되야하는데, 다행히도 메세지 브로커는 고가용성을 제공합니다.
+- **additional operational complexity** : 메세징 시스템은 또 다른 시스템 컴포넌트이기에, 설치되고, 설정되고 운영되야합니다.
+
 
