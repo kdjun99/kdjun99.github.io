@@ -187,4 +187,235 @@ JSON, XML, Protobuf 같이 주고 받는 메세지 형식을 명시해야합니�
 - **potential single point of failure** : 시스템의 신뢰도에 영향을 미치지 않으려면, 고가용성이 제공되야하는데, 다행히도 메세지 브로커는 고가용성을 제공합니다.
 - **additional operational complexity** : 메세징 시스템은 또 다른 시스템 컴포넌트이기에, 설치되고, 설정되고 운영되야합니다.
 
+### competing receivers and message ordering
+
+메세지 브로커의 한가지 과제는 어떻게 메세지의 순서를 보장하면서 리시버를 확장하는 것입니다.
+메세지를 동시에 처리하기 위해서는 다수의 서비스 인스턴스가 요구됩니다.
+더불어서 단일 서비스 인스턴스더라도 스레드를 사용해 다수의 메세지를 동시에 처리할 수 있습니다.
+다수의 스레드와 서비스 인스턴스를 이용해서 동시에 메세지를 처리하는 것은 애플리케이션의 처리량을 향상시킵니다.
+하지만 메세지를 동시에 처리하는 것의 과제는 메세지가 한번만 처리되고 순서를 보장하는 것입니다.
+
+예를 들어, 3개의 서비스 인스턴스가 같은 point-to-point 채널에서 메세지를 읽고 센더는 주문 생성, 주문 업데이트, 주문 취소 이벤트 메세지를 순차적으로 발행합니다.
+간단한 메세징 구현은 각 메세지를 다른 리시버에게 동시에 전달할 수 있습니다. 네트워크 이슈나, 가비지 컬렉션 같은 이유로 딜레이가 발생할 수 있고, 메세지는 순서대로 처리되지 않을 수 있습니다.
+이론적으로 한 서비스 인스턴스가 주문 취소 메세지를 다른 인스턴스가 주문 생성 메세지를 처리하기 전에 처리할 수도 있습니다.
+
+Apache Kafka나 AWS Kinesis 같은 현대 메세지 브로커는 `shared channel`을 사용해서 이런 문제를 해결합니다.
+
+<img width="758" alt="Screenshot 2024-10-11 at 10 16 18" src="https://github.com/user-attachments/assets/589b5cac-cb9c-422a-a3d5-6509aa7ebd2d">
+
+1. shared channel은 각자가 채널처럼 동작하는 두개 이상의 shard로 구성됩니다.
+2. 센더는 통상적으로 임의의 문자열이나 바이트의 시퀀스인 shard key를 메세지 헤더에 명시합니다. 브로커는 shard key를 사용해서 메세지를 특정 shard, 파티션에 할당합니다. 해쉬나 모듈러 연산을 수행해서 shard를 선택할 수도 있습니다.
+3. 메세징 브로커는 여러 리시버 인스턴스를 묶고 그들을 같은 논리적 리시버로 다룹니다. Apache Kafka는 `consumer group` 이라는 표현을 사용합니다. 메세지 브로커는 각 샤드에 하나의 리시버를 할당합니다. 리시버가 시작하거나 종료될 때 샤드를 재할당합니다.
+
+### handling duplicate message
+
+또 다른 과제는 중복 메세지를 처리하는 것입니다.
+메세지 브로커는 이상적으로 메세지를 단 한번만 처리해야하는데, 단 한번만 메세지 처리를 보장하는 것은 너무나 비용이 큽니다.
+대신에 대부분의 메세지 브로커는 메세지가 적어도 한번 처리되는 것을 보장합니다.
+
+시스템이 정상적으로 동작할 때, 적어도 한번 전달을 보장하는 메세지 브로커는 각 메세지를 한 번만 전달합니다.
+하지만 클라이언트, 네트워크 혹은 메세지 브로커의 장애로 인해 메세지는 여러번 처리될 수 있습니다.
+클라이언트가 메세지를 처리하고, 데이터베이스를 업데이트한 후 하지만 메세지의 ack를 전송하기 전에 장애가 났다고 해봅시다.
+메세지 브로커는 ack을 받지 못한 메세지를 장애가 난 클라이언트가 재실행되면 재전송하거나 클라이언트의 다른 레플리카에 전송할 것입니다.
+
+이상적으로 메세지를 재전송할 때, 메세지의 순서를 보장하는 브로커를 사용해야 합니다.
+클라이언트가 동일한 주문에 대해 먼저 주문 생성 이벤트를 처리한 후 주문 취소 이벤트를 처리했는데, 어떤 이유로 주문 생성 이벤트가 확인되지 않은 상황을 가정해봅시다.
+메세지 브로커는 주문 생성과 주문 취소 이벤트를 재전송해야합니다. 
+만약 주문 생성 이벤트만 재전송된다면, 주문 취소 이벤트가 실행되지 않을 수 있습니다.
+
+중복 메세지를 처리하는데는 다양한 방법들이 존재합니다.
+- 멱등성을 가진 메세지 핸들러를 작성합니다.
+- 메세지를 추적하고 중복된 메세지는 버립니다.
+
+**writing idempotent message handlers**
+
+만약 메세지를 처리하는 애플리케이션 로직이 멱등성을 가진다면, 중복된 메세지는 문제가 되지 않습니다.
+애플리케이션 로직이 같은 인풋 값을 주어지고 여러번 호출했을 때, 발생하는 추가적인 문제가 없다면 애플리케이션 로직이 `멱등성을 가진다`라고 합니다.
+예를들어, 이미 취소된 주문을 취소하는 것은 멱등성을 가지는 오퍼레이션입니다. 
+메세지 브로커가 메세지를 재전송할 때, 메세지 순서만 보장해준다면, 멱등성을 가지는 메세지 핸들러는 안전하게 여러번 수행할 수 있습니다.
+
+하지만 불행히도 애플리케이션 로직은 종종 멱등성을 가지지 않습니다.
+혹은 메세지 브로커가 메세지를 재전송할 때, 메세지의 순서를 지키지 않는 메세지 브로커를 쓸 수 도 있습니다.
+중복되거나 순서가 어긋난 메세지는 버그를 발생시킬 수 있습니다.
+이런 상황에서는 메세지를 추적하고 중복된 메세지는 제거하는 메세지 핸들러를 사용해야합니다.
+
+**tracking messages and discarding duplicates**
+
+고객의 신용카드를 승인하는 메세지 핸들러를 생각해봅시다.
+이 경우에는 주문 당 정확히 한번만 카드를 승인해야합니다.
+이런 경우에는 애플리케이션 로직이 실행될때마다 영향을 미치게 됩니다.
+만약 중복된 메세지가 메세지 핸들러로 하여금 같은 로직을 여러번 실행하게 하면, 애플리케이션은 틀린 방식으로 동작하게 됩니다.
+이런 애플리케이션 로직을 처리하는 메세지 핸들러는 중복 메세지를 확인하고 제거함으로서 멱등성을 가져야합니다.
+
+간단한 해결 방법은 메세지 컨슈머로 하여금 `message id`를 이용하여 이미 처리한 메세지를 추적하고, 중복을 제거하는 것입니다.
+<img width="758" alt="Screenshot 2024-10-11 at 14 00 18" src="https://github.com/user-attachments/assets/de5bbe62-b4e3-4c75-a317-ed7376f671ed">
+
+메세지 컨슈머는 자신이 소비한 메세지의 아이드를 데이터베이스 테이블에 저장할 수 있습니다.
+컨슈머가 메세지를 처리할 때, `message id` 값을 비즈니스 엔티티를 생성하거나 업데이트하는 트랜잭션에 포함시켜 기록합니다.
+위 예제에서는 컨슈머가 `PROCESSED_MESSAGES` 테이블에 소비한 `message id` 값을 추가했습니다.
+만약 메세지가 중복된다면, `INSERT` 작업은 실패할 것이고, 컨슈머는 메세지를 제거할 것입니다.
+
+또 다른 옵션은 메세지 핸들러가 `message id`를 애플리케이션 테이블이 아닌 지정된 테이블에 기록하는 것입니다.
+이런 접근 방법은 NOSQL 데이터베이스처럼 제한된 트랜잭션 모델을 가질 때 효과적입니다.
+
+### transactional messaging
+
+서비스는 종종 데이터베이스를 업데이트하는 트랜잭션의 일부로 메세지를 발행해야 하는 경우가 있습니다.
+지금까지 비즈니스 엔티티가 생성되거나 수정되는 도메인 이벤트를 발행하는 서비스의 예시들을 보았습니다.
+데이터베이스의 업데이트와 메세지의 발행이 반드시 트랜잭션 내부에서 진행되야합니다.
+그렇지 않다면, 서비스는 데이터베이스만 업데이트하고 장애가 발생해 메세지를 보내지 못하는 경우도 발생합니다.
+서비스가 이 두 오퍼레이션을 원자적으로 수행하지 못한다면, 이 장애로 인해 시스템의 consistency는 깨지게 됩니다.
+
+전통적인 해결방법은 데이터베이스와 트랜잭션을 아우르는 분산 트랜잭션을 사용하는 것 입니다.
+하지만, 이후에 다룰텐데 분산 트랜잭션은 현대 애플리케이션에 적합하지 않습니다.
+
+결과적으로 애플리케이션은 다른 메커니즘을 사용해서 이런 문제를 해결해야 합니다.
+
+**using a database table as a message queue**
+
+관계형 데이터베이스를 사용하는 애플리케이션이 있습니다. 메세지를 발행하는 간단한 방법은 **Transactional outbox pattern**을 적용하는 것 입니다.
+이 패턴은 데이터베이스 테이블을 임시 메세지 큐처럼 사용합니다.
+
+<img width="758" alt="Screenshot 2024-10-11 at 14 21 06" src="https://github.com/user-attachments/assets/88bc1fa7-a63a-4a3f-a90c-7ae0b7b11935">
+
+메세지를 전송하는 테이블은 `OUTBOX`라는 테이블을 가집니다. 비즈니스 오브젝트를 생성, 수정, 삭제하는 데이터베이스 트랜잭션의 부분으로 서비스는 `OUTBOX`테이블에 메세지를 추가하는 것으로 메세지를 전송합니다.
+ACID 트랜잭션 내에서 동작하기에, 원자성이 자동으로 보장됩니다.
+
+`OUTBOX` 테이블은 임시 메세지 큐처럼 동작합니다.
+`MessageRelay`는 `OUTBOX`테이블로부터 메세지를 읽는 컴포넌트이고, 메세지 브로커로 메세지를 발행합니다.
+
+이와 유사한 접근 법을 몇몇 NoSQL 데이터베이스에 적용할 수 있습니다.
+`record`로 저장된 각 비즈니스 엔티티는 발행되야하는 메세지의 리스트를 속성으로 가지고 있습니다.
+서비스가 데이터베이스 내 엔티티를 업데이트하면, 엔티티의 메세지 리스트에 메세지가 추가됩니다.
+단일 데이터베이스 오퍼레이션이기에 이 동작은 원자적입니다.
+다만 이벤트를 가지고 발행할 비즈니스 엔티티를 효율적으로 찾는 것이 과제로 남긴합니다.
+
+데이터베이스로부터 메세지를 브로커로 전송하는 다른 방법들도 조냊합니다.
+
+**publishing events by using the polling publisher pattern**
+
+만약 애플리케이션이 관계형 데이터베이스를 사용한다면, `OUTBOX` 테이블로 추가된 메세지를 발행하는 가장 심플한 방법은 `MessageRelay`로 하여금 테이블에서 발행되지 않은 메세지를 뽑는 것입니다.
+주기적으로 테이블에 다음과 같은 쿼리를 실행합니다.
+```sql
+SELECT * FROM OUTBOX ORDERED BY ... ASC
+```
+
+그리고 `MessageRelay`는 조회된 메세지를 목적지 채널로 보내는 것으로 메세지를 브로커에 발행합니다.
+최종적으로 `OUTBOX` 테이블에 발행된 메세지를 제거합니다.
+```sql
+BEGIN
+  DELETE FROM OUTBOX WHERE ID in (...)
+COMMIT
+```
+
+데이터베이스에서 메세지를 추출하는 것은 서비스의 규모가 작을 때 사용할 수 있는 간단한 접근 방법입니다.
+이것의 단점은 데이터베이스에서 자주 메세지를 추출하는 것은 비용이 크다는 점입니다.
+또한 이 접근 방식을 NoSQL 데이터베이스에서 사용할 수 있는지는 해당 데이터베이스의 쿼리 기능에 따라 다릅니다.
+`OUTBOX` 테이블을 쿼리하는 대신 애플리케이션이 비즈니스 엔티티를 쿼리해야 하기 때문에, 이것이 효율적으로 가능한지 여부가 문제입니다.
+이러한 단점과 제한 사항으로 인해, 더 정교하고 성능이 좋은 방법은 데이터베이스 트랜잭션 로그를 후미에서 처리하는 방식이 종종 더 나은 선택이며, 경우에 따라서는 필수적일 수 있습니다.
+
+**publishing events by applying the transaction log tailing pattern**
+
+좀 더 정교한 솔루션은 `MessageRelay`로 하여금 데이터베이스 트랜잭션 로그를 `tail`하는 것입니다.
+애플리케이션이 만드는 모든 커밋된 업데이트 내용들은 데이터베이스 트랜잭션 로그에 기록됩니다.
+트랜잭션 로그 마이너는 로그를 읽고 각 변경 사항을 메세지로 브로커에 발행할 수 있습니다.
+
+<img width="758" alt="Screenshot 2024-10-11 at 14 42 46" src="https://github.com/user-attachments/assets/8a157ffc-f6f4-4f33-a8e8-a86c5aca3038">
+
+`TransactionLogMiber`는 트랜잭션 로그 엔트리를 읽습니다. 마이너는 삽입된 메세지와 대응되는 로그 엔트리를 메세지로 변환하고 각 메세지를 브로커에 발행합니다.
+이런 접근 방법은 RDBMS `OUTBOX` 테이블에 작성된 혹은 NoSQL 데이터베이스의 레코드로 추가된 메세지들을 발행할 수 있게 합니다.
+
+이런 접근 방법의 한가지 과제는, 개발자의 노력이 좀 필요하다는 것입니다.
+
+### libraries and frameworks for messaging
+
+서비스는 메세지를 발행하고, 수신하기 위해서는 라이브러리를 사용해야합니다.
+한가지 접근 방법은 메세지 브로커의 클라이언트 라이브러리를 사용하는 것입니다.
+하지만, 라이브러리를 직접 사용하면 몇가지 문제점들이 발생합니다.
+- client library는 메세지 브로커 API에 메세지를 발행하는 비즈니스 로직들을 결합시킵니다.
+- 메세지 브로커의 클라이언트 라이브러리는 통상적으로 low level이고 메세지를 보내거나, 수신하는데 많은 양의 코드가 필요합니다. 개발자로서, 반복되는 boilerplate 코드는 원하지 않습니다. 
+- 클라이언트 라이브러리는 보통 메세지를 전송하고 수신하는 기본적인 메커니즘만 제공합니다. 
+
+보다 더 나은 접근 방법은 low-level 디테일을 감추고 바로 higher-level 상호작용 스타일을 지원하는 high-level 라이브러리나 프레임워크를 사용하는 것 입니다.
+> 이 책에서는 Eventuate Tram 프레임워크를 사용합니다.
+
+`Eventuate Tram`은 다음과 같은 두 중요한 메커니즘을 구현합니다.
+- Transactional messaging : 데이터베이스 트랜잭션의 일부로 메세지를 발행합니다.
+- Duplicate message detection : Eventuate Tram 메세지 컨슈머는 중복 메세지를 탐지하고 제거합니다.
+
+### Eventuate Tram
+
+**basic messaging**
+
+기본적은 메세징 API는 두가지 자바 인터페이스로 구성됩니다. `MessageProducer` 그리고 `MessageConsumer`
+프로듀서 서비스는 `MessageProducer` 인터페이스를 사용해서 메세지를 메세지 채널로 발행합니다.
+```java
+MessageProducer messageProducer = ...;
+String channel = ...;
+String payload = ...;
+messageProducer.send(destination, MessageBuilder.withPayload(payload).build());
+```
+
+컨슈머 서비스는 `MessageConsumer` 인터페이스를 사용해서 메세지를 구독합니다.
+```java
+MessageConsumer messageConsumer;
+messageConsumer.subscribe(subscriberId, Collections.singleton(destination),
+message -> { ... });
+```
+
+`MessageProducer`와 `MessageConsumer`는 비동기 request/response와 도메인 이벤트 발행을 위한 higher level API의 토대가 됩니다.
+
+**domain event publishing**
+
+Eventuate Tram은 도메인 이벤트를 발행하고 소비하는 API들을 가지고 잇습니다.
+> 도메인 이벤트는 aggregate(비즈니스 객체)가 생성, 수정, 삭제될 때 발생하는 이벤트임을 설명합니다.
+
+서비스는 `DomainEventPublisher`인터페이스를 이용해서 도메인 이벤트를 발행합니다.
+```java
+DomainEventPublisher domainEventPublisher;
+String accountId = ...;
+DomainEvent domainEvent = new AccountDebited(...);
+domainEventPublisher.publish("Account", accountId, Collections.singletonList(
+domainEvent));
+```
+
+서비스는 도메인 이벤트를 `DomainEventDispatcher`를 이용해서 소비합니다.
+```java
+DomainEventHandlers domainEventHandlers = DomainEventHandlersBuilder
+  .forAggregateType("Order")
+  .onEvent(AccountDebited.class, domainEvent -> { ... })
+  .build();
+
+new DomainEventDispatcher("eventDispatcherId",
+  domainEventHandlers,
+  messageConsumer);
+```
+
+**command / reply-based messaging**
+
+클라이언트는 서비스에게 커맨드 메세지를 `CommandProducer` 인터페이스를 사용해 보낼 수 있습니다.
+```java
+CommandProducer commandProducer = ...;
+Map<String, String> extraMessageHeaders = Collections.emptyMap();
+String commandId = commandProducer.send("CustomerCommandChannel",
+  new DoSomethingCommand(),
+  "ReplyToChannel",
+  extraMessageHeaders);
+```
+
+서비스는 `CommandDispatcher` 클래스를 이용해서 커맨드 메세지를 소비합니다.
+`CommandDispatcher`는 `MessageConsumer` 인터페이스를 사용해 특정 이벤트를 구독합니다.
+`CommandDispatcher`는 각 명령 메세지를 적절한 핸들러 메서드로 디스패치합니다.
+
+```java
+CommandHandlers commandHandlers =CommandHandlersBuilder
+  .fromChannel(commandChannel)
+  .onMessage(DoSomethingCommand.class, (command) -> { ... ; return withSuccess(); })
+  .build();
+
+CommandDispatcher dispatcher = new CommandDispatcher("subscribeId", commandHandlers, messageConsumer, messageProducer);
+```
+
+앞서 확인한 것처럼, `Eventuate Tram` 프레임워크는 자바 애플리케이션을 위해 transactional messaging을 구현합니다.
+이 프레임워크는 메시지를 트랜잭션 방식으로 송수신하기 위한 저수준 API를 제공하며, 도메인 이벤트를 발행하고 소비하거나 명령을 송신하고 처리하기 위한 고수준 API도 제공합니다.
 
