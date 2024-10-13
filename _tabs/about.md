@@ -4,6 +4,16 @@ icon: fas fa-info-circle
 order: 4
 ---
 
-> Add Markdown syntax content to file `_tabs/about.md`{: .filepath } and it will show up on this page.
-{: .prompt-tip }
+## Skills
+
+### Language
+- **Java, Kotlin, Python, Javascript**
+
+### Database
+- **MySQL, Redis, Mongodb**
+
+### Library & Framework
+
+- **Spring boot, Spring webflux, Spring security, JPA, Querydsl, Django**
+- **Docker, Kafka, Prometheus, Grafana, Nginx, AWS**
 

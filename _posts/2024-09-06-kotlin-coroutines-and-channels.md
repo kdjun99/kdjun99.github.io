@@ -3,7 +3,7 @@ layout: post
 title: Kotlin - Coroutines and channels
 date: 2024-09-06 14:58 +0900
 description: 코루틴을 이용해 네트워크 리퀘스트 처리 실습
-image:
+image: https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Kotlin_logo_2021.svg/330px-Kotlin_logo_2021.svg.png
 category: ["kotlin", "coroutine"]
 tags:
 published: true

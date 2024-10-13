@@ -3,7 +3,7 @@ layout: post
 title: Kotlin - Coroutines
 date: 2024-09-05 17:13 +0900
 description: Coroutine 개념 정리 & 코틀린에서 Coroutine 사용하기
-image:
+image: https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Kotlin_logo_2021.svg/330px-Kotlin_logo_2021.svg.png
 category: ["kotlin", "coroutine"]
 tags:
 published: true
