@@ -6,7 +6,7 @@ description: microservice patterns 책을 통해 학습한 내용을 정리한 �
 image: https://velog.velcdn.com/images/chancehee/post/80fefca2-c70a-4740-a434-0ca140002f4a/image.png
 category: ["msa"]
 tags:
-published: true
+published: false
 sitemap: true
 author: kim-dong-jun99
 ---
